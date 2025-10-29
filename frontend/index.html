@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YCB Viewer Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>YCB Viewer</h1>
+        <p>Live Habitat-Sim rendering streamed from the backend.</p>
+      </header>
+      <main>
+        <section class="viewer">
+          <div id="frame-wrapper" class="frame-wrapper">
+            <img id="frame" alt="Habitat frame" draggable="false" />
+            <div id="overlay" class="overlay">
+              <div id="patch" class="patch" role="presentation"></div>
+            </div>
+          </div>
+          <canvas
+            id="pip"
+            class="pip"
+            width="160"
+            height="160"
+            aria-label="Magnified patch view"
+          ></canvas>
+          <div id="status" class="status hidden"></div>
+        </section>
+        <section class="controls">
+          <div class="object-controls">
+            <button id="prev-object" type="button">◀ Previous</button>
+            <span id="object-label">Object: --</span>
+            <button id="next-object" type="button">Next ▶</button>
+          </div>
+          <div class="camera-controls">
+            <button id="reset-camera" type="button">Reset Camera</button>
+            <span id="camera-readout"></span>
+          </div>
+          <div class="session-controls">
+            <button id="shutdown-server" type="button" class="danger">Stop Server</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+name: sdr-dashboard
+channels:
+  - aihabitat
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.9.*
+  - numpy
+  - scipy
+  - jsonschema
+  - pytest
+  - matplotlib
+  - ipykernel
+  - habitat-sim=0.3.3=*headless*
+  - pytorch=2.3.*
+  - pytorch-cuda=11.8
+  - pip
+  - pip:
+    - uvicorn[standard]
+    - fastapi
+    - habitat-lab==0.3.320250127
+    - huggingface-hub>=0.24,<1.0
+    - pygltflib>=1.16
+    - opencv-python>=4.8.0
