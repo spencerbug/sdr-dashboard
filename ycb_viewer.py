@@ -10,7 +10,10 @@ import uvicorn
 def main() -> None:
     host = os.environ.get("YCB_VIEWER_HOST", "0.0.0.0")
     port = int(os.environ.get("YCB_VIEWER_PORT", "8000"))
-    reload = os.environ.get("YCB_VIEWER_RELOAD", "0") == "1"
+    reload_env = os.environ.get("YCB_VIEWER_RELOAD", "0")
+    reload = reload_env == "1"
+    if reload:
+        print("WARNING: reload=True can break asyncio locks and cause frame loop errors. Use only for frontend dev!")
     log_level = os.environ.get("YCB_VIEWER_LOG_LEVEL", "info")
 
     config = uvicorn.Config(

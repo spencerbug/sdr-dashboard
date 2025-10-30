@@ -287,10 +287,15 @@ async function changeObject(delta) {
   if (!state.objects.length) {
     return;
   }
-  state.currentIndex = (state.currentIndex + delta + state.objects.length) % state.objects.length;
+  const nextIndex = (state.currentIndex + delta + state.objects.length) % state.objects.length;
   updateUI();
   try {
-    const response = await postJson(`/api/object/${state.currentIndex}`, {});
+    const response = await postJson(`/api/object/${nextIndex}`, {});
+    if (typeof response?.objectIndex === "number") {
+      state.currentIndex = response.objectIndex;
+    } else {
+      state.currentIndex = nextIndex;
+    }
     if (response?.camera) {
       state.camera = { ...state.camera, ...response.camera };
     }

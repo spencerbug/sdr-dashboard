@@ -1,6 +1,8 @@
 # YCB Object Viewer
 
-A 3D interactive viewer for YCB objects using DearPyGUI and Habitat-Sim.
+A 3D interactive viewer for YCB objects using FastAPI and Habitat-Sim.
+
+![Screenshot of YCB Object Viewer](docs/images/Screenshot_2025-10-30_104531.png)
 
 ## Features
 
@@ -49,7 +51,7 @@ python ycb_viewer.py
 
 ## Requirements
 
-- Conda environment with Habitat-Sim, DearPyGUI, OpenCV
+- Conda environment with Habitat-Sim, OpenCV
 - YCB object meshes and configurations
 - Generated void scene for rendering
 

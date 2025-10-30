@@ -244,6 +244,7 @@ def habitat_worker_main(
             max_dimension = float(np.max(size_vec))
             radius = float(np.linalg.norm(size_vec) * 0.5)
             diameter = float(max(radius * 2.0, max_dimension))
+            major_axis = float(max_dimension)
 
             try:
                 center_vec = np.array(bb.center(), dtype=np.float32)
@@ -262,12 +263,19 @@ def habitat_worker_main(
 
             hfov_rad = math.radians(max(hfov_deg, 1e-3))
             vfov_rad = math.radians(max(vfov_deg, 1e-3))
-            fill_ratio = 0.8
+
+            target_ratio = 0.8
+            effective_fov = min(hfov_rad, vfov_rad)
+            half_extent = max(major_axis * 0.5, 1e-3)
+            ratio = max(min(target_ratio, 0.98), 1e-3)
+            angle = max(effective_fov * ratio * 0.5, 1e-4)
+            distance_for_ratio = half_extent / math.tan(angle)
 
             min_distance_h = radius / max(math.sin(hfov_rad / 2.0), 1e-3)
             min_distance_v = radius / max(math.sin(vfov_rad / 2.0), 1e-3)
             min_distance = max(min_distance_h, min_distance_v, radius * 1.05, 0.3)
-            desired_distance = max(min_distance / fill_ratio, diameter * 0.4, 0.35) * 1.05
+
+            desired_distance = max(distance_for_ratio * 1.02, min_distance)
 
             default_theta = math.pi / 6.0
             default_phi = math.radians(12.0)
@@ -280,6 +288,7 @@ def habitat_worker_main(
                     "size": size_vec.astype(float).tolist(),
                     "radius": float(radius),
                     "diameter": float(diameter),
+                    "major_axis": float(major_axis),
                     "center": center_vec.astype(float).tolist(),
                 },
                 "camera": {

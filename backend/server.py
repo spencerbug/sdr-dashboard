@@ -59,10 +59,12 @@ class ViewerService:
 
         self._clients: Set[WebSocket] = set()
         self._frame_task: Optional[asyncio.Task] = None
-        self._lock = asyncio.Lock()
+        self._lock: Optional[asyncio.Lock] = None
         self._running = asyncio.Event()
 
     async def start(self) -> None:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
         await self.set_object(self.object_idx)
         self._running.set()
         self._frame_task = asyncio.create_task(self._frame_loop(), name="frame_loop")
@@ -101,7 +103,7 @@ class ViewerService:
         if not self.object_configs:
             raise HTTPException(status_code=400, detail="No objects available")
         index %= len(self.object_configs)
-        async with self._lock:
+        async with self._ensure_lock():
             result = await asyncio.to_thread(self.bridge.load_object, index)
             self.object_idx = index
 
@@ -111,6 +113,7 @@ class ViewerService:
 
             radius = float(bounds.get("radius", 0.5))
             diameter = float(bounds.get("diameter", radius * 2.0))
+            major_axis = float(bounds.get("major_axis", radius * 2.0))
             center = bounds.get("center")
 
             if isinstance(center, (list, tuple)) and len(center) == 3:
@@ -118,25 +121,39 @@ class ViewerService:
             else:
                 self.target = [0.0, 0.0, 0.0]
 
-            if default_camera:
-                distance = float(default_camera.get("distance", 2.0))
-                theta = float(default_camera.get("theta", 0.0))
-                phi = float(default_camera.get("phi", 0.0))
-            else:
-                hfov = float(camera_info.get("hfov", 90.0))
-                vfov = float(camera_info.get("vfov", hfov))
-                fill_ratio = 0.8
+            hfov = float(camera_info.get("hfov", 90.0))
+            vfov = float(camera_info.get("vfov", hfov))
+            target_ratio = 1.0
 
+            distance_override: Optional[float] = None
+            try:
                 hfov_rad = math.radians(max(hfov, 1e-3))
                 vfov_rad = math.radians(max(vfov, 1e-3))
+                effective_fov = min(hfov_rad, vfov_rad)
+                half_extent = max(major_axis * 0.5, 1e-3)
+                ratio = max(min(target_ratio, 0.98), 1e-3)
+                angle = max(effective_fov * ratio * 0.5, 1e-4)
+                distance_for_ratio = half_extent / math.tan(angle)
 
                 min_distance_h = radius / max(math.sin(hfov_rad / 2.0), 1e-3)
                 min_distance_v = radius / max(math.sin(vfov_rad / 2.0), 1e-3)
                 min_distance = max(min_distance_h, min_distance_v, radius * 1.05, 0.3)
 
-                distance = max(min_distance / max(fill_ratio, 1e-3), diameter * 0.4, 0.3)
+                distance_override = max(distance_for_ratio * 1.02, min_distance)
+            except (ValueError, ZeroDivisionError):
+                distance_override = None
+
+            if default_camera:
+                distance = float(default_camera.get("distance", 2.0))
+                theta = float(default_camera.get("theta", 0.0))
+                phi = float(default_camera.get("phi", 0.0))
+            else:
+                distance = max(radius * 2.0, 0.3)
                 theta = 0.0
                 phi = 0.0
+
+            if distance_override is not None:
+                distance = float(distance_override)
 
             self.camera = {"distance": distance, "theta": theta, "phi": phi}
             self.default_camera = dict(self.camera)
@@ -150,7 +167,7 @@ class ViewerService:
             }
 
     async def update_camera(self, update: CameraUpdate) -> Dict[str, Any]:
-        async with self._lock:
+        async with self._ensure_lock():
             if update.distance is not None:
                 self.camera["distance"] = max(0.1, float(update.distance))
             if update.theta is not None:
@@ -197,13 +214,18 @@ class ViewerService:
             _LOG.exception("Frame loop encountered an error: %s", exc)
 
     async def _snapshot_camera(self) -> Dict[str, Any]:
-        async with self._lock:
+        async with self._ensure_lock():
             return {
                 "distance": self.camera["distance"],
                 "theta": self.camera["theta"],
                 "phi": self.camera["phi"],
                 "target": list(self.target),
             }
+
+    def _ensure_lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     @staticmethod
     def _format_object_label(config: Dict[str, Any]) -> str:

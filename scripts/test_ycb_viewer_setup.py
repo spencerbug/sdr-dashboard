@@ -18,13 +18,6 @@ def check_environment():
         return False
         
     try:
-        import dearpygui.dearpygui as dpg
-        print("✓ DearPyGUI available")
-    except ImportError:
-        print("✗ DearPyGUI not found")
-        return False
-        
-    try:
         import habitat_sim
         print("✓ Habitat-Sim available")
     except ImportError:
